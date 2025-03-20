@@ -2,6 +2,7 @@ const { PrismaClient } = require('@prisma/client');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const { response } = require('express');
 
 //? สร้างตัวแปรอ้างอิงสำหรับ prisma เพื่อเอาไปใช้
 const prisma = new PrismaClient();
@@ -60,3 +61,122 @@ exports.createFest = async (req, res) => {
   }
 }
 //?-------------------------------------------------
+exports.getAllFest = async (req, res) => {
+  try {
+    const result = await prisma.festival_tb.findMany({
+      where: {
+        userid: parseInt(req.params.userid),
+      },
+    })
+    response.status(200).json({
+      message: "ดึงข้อมูลสําเร็จ",
+      info: result
+    })
+  }catch (err) {
+    res.status(500).json({  
+      message: `พบเจอปัญหาในการทำงาน: ${err}`
+    })
+    console.log('Error', err);
+}
+}
+
+
+exports.getOnlyFest = async (req, res) => {
+  try {
+    const result = await prisma.festival_tb.findFirst({
+      where: {
+        userid: parseInt(req.params.userid),
+      },
+    })
+    response.status(200).json({
+      message: "ดึงข้อมูลสําเร็จ",
+      info: result
+    })
+  }catch (err) {
+    res.status(500).json({  
+      message: `พบเจอปัญหาในการทำงาน: ${err}`
+    })
+    console.log('Error', err);
+}
+}
+
+exports.updateFest = async (req, res) => {
+  let result = {};
+  try {
+    // ต้องตรวจสอบด้วยว่ามีการเปลี่ยนรูปมั้ย ถ้าไม่เปลี่ยนไม่เป็นไร
+    // ถ้าเปลี่ยนรูปจะต้องลบรูปเก่าทิ้ง และใช้รูปใหม่แทน
+    if(req.file ){
+      //แก้ไขรูป
+        const festResult  = await prisma.festival_tb.findFirst({
+            where: {
+                festid: parseInt(req.params.festid)
+            }
+        })
+        // ดูว่ามีรูปหรือไม่ ถ้ามีก็ลบ
+        if(festResult.userImage){
+         fs.unlinkSync(path.join("images/fests", festResult.festImage));  //? ลบรูปเก่า
+        }
+        // อัปเดตรูปใหม่
+         result = await prisma.fest_tb.update({
+          where: {
+            festid: parseInt(req.params.festid)
+          },
+          data: {
+            festName:  festName,
+            festDetail:  festDetail,
+            festState:  festState,
+            festCost: parseFloat(festCost),
+            festNumDate:parseInt(festNumDate),
+            userid: parseInt(userid),    
+            festImage: req.file ? req.file.path.replace("images\\fests\\", '') : "",
+          }
+        })
+
+    }else{
+      // ไม่แก้ไขรูป
+      result = await prisma.fest_tb.update({
+        where: {
+          festid: parseInt(req.params.festid)
+        },
+        data: {
+          festName:  festName,
+          festDetail:  festDetail,
+          festState:  festState,
+          festCost: parseFloat(festCost),
+          festNumDate:parseInt(festNumDate),
+          userid: parseInt(userid),    
+        }
+      })
+    }
+
+    res.status(200).json({
+      message: "แก้ไขข้อมูลสําเร็จ",
+      info: result
+    })
+  } catch (err) {
+    res.status(500).json({
+      message: `พบเจอปัญหาในการทำงาน: ${err}`
+    })
+    console.log('Error', err);
+  } 
+}
+
+exports.deleteFest = async (req, res) => {
+  try {
+    const result = await prisma.fest_tb.delete({
+      where: {
+        festid: parseInt(req.params.festid)
+      }
+    })
+    res.status(200).json({
+      message: "ลบข้อมูลสําเร็จ",
+      info: result
+    })
+
+  } catch (err) {
+    res.status(500).json({
+      message: `พบเจอปัญหาในการทำงาน: ${err}`
+    })
+    console.log('Error', err);
+  }
+}

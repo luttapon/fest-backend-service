@@ -14,6 +14,8 @@ app.use(cors())
 app.use(express.json());
 app.use('/user', userRoute);
 app.use('/fest',festRoute);
+app.use('/image/fests',express.static('images/fests'));
+app.use('/image/users',express.static('images/users'));
 
 
 // test
